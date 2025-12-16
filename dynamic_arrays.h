@@ -128,7 +128,12 @@ struct DA {
 #define da_enumerate_ptr(da, Type, i, item) for (size_t i = 0, Type *item = (da).items; i < (da).count; i++, item++)
 
 #define da_clear(da) (da)->count = 0; // NOTE: does not free
-#define da_free(da) free((da)->items);
+#define da_free(da)         \
+    do {                    \
+        free((da)->items);  \
+        (da)->count = 0;    \
+        (da)->capacity = 0; \
+    } while (0)
 
 #define da_is_empty(da) ((da)->count == 0)
 
