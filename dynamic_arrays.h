@@ -26,8 +26,6 @@ struct DA {
 
 #define DA_DEFAULT_CAP 32
 
-// TODO: always true for size_t i
-// assert((i) >= 0 && "Index must be positive.");
 #define da_bounds_check(da, i)                                                          \
     do {                                                                                \
         assert((size_t)(i) < (da).count && "Index must be less than the array count."); \
@@ -74,7 +72,6 @@ struct DA {
         if ((size_t)(i) == (da)->count) {                                                    \
             (da)->items[(da)->count++] = (item);                                             \
         } else {                                                                             \
-            assert((i) >= 0 && "Index must be positive.");                                   \
             assert((size_t)(i) < (da)->count && "Index must be less than the array count."); \
             memmove((da)->items+i+1, (da)->items+i, ((da)->count-i)*sizeof(*(da)->items));   \
             (da)->items[i] = (item);                                                         \
@@ -104,26 +101,31 @@ struct DA {
 
 #define da_remove(da, i, item)                                                               \
     do {                                                                                     \
-        if ((size_t)(i) == (da)->count-1) {                                                  \
-            da_pop((da), (item));                                                            \
-        } else {                                                                             \
-            assert((i) >= 0 && "Index must be positive.");                                   \
-            assert((size_t)(i) < (da)->count && "Index must be less than the array count."); \
-            (item) = (da)->items[i];                                                         \
+        assert((da)->count > 0 && "DA ERROR: underflow");                                    \
+        assert((size_t)(i) < (da)->count && "Index must be less than the array count.");     \
+        (item) = (da)->items[i];                                                             \
+        if ((size_t)(i) < (da)->count - 1)                                                   \
             memmove((da)->items+i, (da)->items+i+1, ((da)->count-i-1)*sizeof(*(da)->items)); \
-            (da)->count--;                                                                   \
-        }                                                                                    \
+        (da)->count--;                                                                       \
     } while (0)
 
 // TODO: piu' efficiente: `item=da->items[0]; da->items++;` ma siamo sicuri? e il count?
 #define da_pop_front(da, item) da_remove((da), 0, (item))
 
-#define da_for(da, i) for ((i) = 0; (size_t)(i) < (da).count; (i)++)
+// TODO: check if not empty
+// TODO: test these
+// TODO: they do not work hehe
+#define da_for(da, i) for (size_t i = 0; i < (da).count; i++)
 
-#define da_foreach(da, item) for ((item) = (da).items; (item) < (da).items+(da).count; (item)++)
+#define da_foreach(da, Type, item) \
+    for (size_t __i = 0, Type item = (da).items[0]; __i < (da).count; __i++, item=(da).items[__i])
 
-// TODO: lo tengo? non serve davvero
-#define da_enumerate(da, i, item) for ((i) = 0, (item) = (da).items[0]; (size_t)(i) < (da).count; (i)++, (item)=(da).items[i])
+#define da_foreach_ptr(da, Type, item) for (Type *item = (da).items; item < (da).items+(da).count; item++)
+
+#define da_enumerate(da, Type, i, item) \
+    for (size_t i = 0, Type item = (da).items[0]; i < (da).count; i++, item=(da).items[i])
+
+#define da_enumerate_ptr(da, Type, i, item) for (size_t i = 0, Type *item = (da).items; i < (da).count; i++, item++)
 
 #define da_clear(da) (da)->count = 0; // NOTE: does not free
 #define da_free(da) free((da)->items);
