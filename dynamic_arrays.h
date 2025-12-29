@@ -17,31 +17,20 @@ struct DA {
 #include <stdbool.h>
 #include <string.h>
 
-// TODO:
-// - same stuff but many
-// - find
-// - better realloc (expand when full at 3/4, and maybe shrink when full at < 3/4)
-// - scartare il risultato nelle operazioni di remove
-// - make it a header only library (vedi nob)
-
 #define DA_DEFAULT_CAP 32
 
-#define da_bounds_check(da, i)                                                          \
-    do {                                                                                \
-        assert((size_t)(i) < (da).count && "Index must be less than the array count."); \
-    } while (0)
+/*================== Get & Other Utilities =====================*/
 
-#define da_get(da, i, item)         \
-    do {                            \
-        da_bounds_check((da), (i)); \
-        (item) = (da).items[i];     \
-    } while (0)
+#define da_bounds_check(da, i) \
+    assert((size_t)(i) < (da).count && "Index must be less than the array count.")
 
-#define da_get_ptr(da, i, item)     \
-    do {                            \
-        da_bounds_check((da), (i)); \
-        (item) = &(da).items[i];    \
-    } while (0)
+#define da_get(da, i) \
+    (da_bounds_check((da), (i)), (da).items[i])
+
+#define da_get_ptr(da, i) \
+    (da_bounds_check((da), (i)), &(da).items[i])
+
+#define da_is_empty(da) ((da)->count == 0)
 
 #define da_fit(da)                                                                     \
     do {                                                                               \
@@ -51,6 +40,8 @@ struct DA {
             assert((da)->items != NULL && "Buy more RAM");                             \
         }                                                                              \
     } while (0)
+
+/*================== Insert =====================*/
 
 #define da_push(da, item)                                                             \
     do {                                                                              \
@@ -66,7 +57,7 @@ struct DA {
     do {                                                                                     \
         if ((da)->count >= (da)->capacity) {                                                 \
             (da)->capacity = (da)->capacity == 0 ? DA_DEFAULT_CAP : (da)->capacity*2;        \
-            (da)->items = reallocarray((da)->items, (da)->capacity, sizeof(*(da)->items));   \
+            (da)->items = realloc((da)->items, (da)->capacity*sizeof(*(da)->items));         \
             assert((da)->items != NULL && "Buy more RAM");                                   \
         }                                                                                    \
         if ((size_t)(i) == (da)->count) {                                                    \
@@ -79,62 +70,58 @@ struct DA {
         }                                                                                    \
     } while (0)
 
-#define da_push_front(da, item) da_insert((da), (item), 0)
+#define da_push_first(da, item) da_insert((da), (item), 0)
 
 #define da_push_many(da, new_items, new_items_count)                                            \
     do {                                                                                        \
         if ((da)->count + (new_items_count) > (da)->capacity) {                                 \
             if ((da)->capacity == 0) (da)->capacity = DA_DEFAULT_CAP;                           \
             while ((da)->count + (new_items_count) > (da)->capacity) (da)->capacity *= 2;       \
-            (da)->items = reallocarray((da)->items, (da)->capacity, sizeof(*(da)->items));      \
+            (da)->items = realloc((da)->items, (da)->capacity*sizeof(*(da)->items));            \
             assert((da)->items != NULL && "Buy more RAM");                                      \
         }                                                                                       \
         memcpy((da)->items + (da)->count, (new_items), (new_items_count)*sizeof(*(da)->items)); \
         (da)->count += (new_items_count);                                                       \
     } while (0)
 
-#define da_pop(da, item)                                  \
-    do {                                                  \
-        assert((da)->count > 0 && "DA ERROR: underflow"); \
-        (item) = (da)->items[--(da)->count];              \
-    } while (0)
+/*================== Remove =====================*/
 
-#define da_remove(da, i, item)                                                               \
+#define da_pop(da) \
+    (assert((da)->count > 0 && "DA ERROR: underflow"), (da)->items[--(da)->count])
+
+#define da_remove(da, i)                                                                     \
     do {                                                                                     \
         assert((da)->count > 0 && "DA ERROR: underflow");                                    \
         assert((size_t)(i) < (da)->count && "Index must be less than the array count.");     \
-        (item) = (da)->items[i];                                                             \
         if ((size_t)(i) < (da)->count - 1)                                                   \
             memmove((da)->items+i, (da)->items+i+1, ((da)->count-i-1)*sizeof(*(da)->items)); \
         (da)->count--;                                                                       \
     } while (0)
 
-// TODO: piu' efficiente: `item=da->items[0]; da->items++;` ma siamo sicuri? e il count?
-#define da_pop_front(da, item) da_remove((da), 0, (item))
+#define da_remove_first(da) da_remove((da), 0)
 
-// TODO: check if not empty
-// TODO: test these
-// TODO: they do not work hehe
+/*================== Iterators =====================*/
+
 #define da_for(da, i) for (size_t i = 0; i < (da).count; i++)
 
 #define da_foreach(da, Type, item) \
-    for (size_t __i = 0, Type item = (da).items[0]; __i < (da).count; __i++, item=(da).items[__i])
-
-#define da_foreach_ptr(da, Type, item) for (Type *item = (da).items; item < (da).items+(da).count; item++)
+    for (Type *item = (da).items; item != NULL && item < (da).items+(da).count; item++)
 
 #define da_enumerate(da, Type, i, item) \
-    for (size_t i = 0, Type item = (da).items[0]; i < (da).count; i++, item=(da).items[i])
+    for (size_t i = 0, Type *item = (da).items; item != NULL && i < (da).count; i++, item++)
 
-#define da_enumerate_ptr(da, Type, i, item) for (size_t i = 0, Type *item = (da).items; i < (da).count; i++, item++)
+/*================== Cleanup =====================*/
 
-#define da_clear(da) (da)->count = 0; // NOTE: does not free
+// NOTE: does not free
+#define da_clear(da) \
+    (da)->count = 0;
+
 #define da_free(da)         \
     do {                    \
         free((da)->items);  \
+        (da)->items = NULL; \
         (da)->count = 0;    \
         (da)->capacity = 0; \
     } while (0)
-
-#define da_is_empty(da) ((da)->count == 0)
 
 #endif // INCLUDE_DA_H
