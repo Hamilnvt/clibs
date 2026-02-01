@@ -16,6 +16,12 @@ void s_push_null(String *s);
 void s_push_str(String *s, char *str, size_t len);
 void s_push_cstr(String *s, char *str);
 void s_push_fstr(String *s, char *fmt, ...);
+void s_insert(String *s, char c, size_t i);
+
+char s_pop(String *s);
+void s_remove(String *s, size_t i);
+void s_remove_first(String *s);
+
 String s_from_c(char c);
 String s_from_str(char *str, size_t len);
 String s_from_cstr(char *str);
@@ -64,6 +70,11 @@ void s_push_fstr(String *s, char *fmt, ...)
     va_end(ap);
     s_push_cstr(s, buf);
 }
+void s_insert(String *s, char c, size_t i) { da_insert(s, c, i); }
+
+char s_pop(String *s) { return da_pop(s); }
+void s_remove(String *s, size_t i) { da_remove(s, i); }
+void s_remove_first(String *s) { da_remove_first(s); }
 
 //String s_from_c(char c)
 //{

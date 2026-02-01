@@ -41,6 +41,13 @@ struct DA {
         }                                                                              \
     } while (0)
 
+#define da_sort(da_ptr, cmp)                                                        \
+    do {                                                                            \
+        if ((da_ptr)->count > 0) {                                                  \
+            qsort((da_ptr)->items, (da_ptr)->count, sizeof(*(da_ptr)->items), cmp); \
+        }                                                                           \
+    } while (0)
+
 /*================== Insert =====================*/
 
 #define da_push(da, item)                                                             \
@@ -108,7 +115,8 @@ struct DA {
     for (Type *item = (da).items; item != NULL && item < (da).items+(da).count; item++)
 
 #define da_enumerate(da, Type, i, item) \
-    for (size_t i = 0, Type *item = (da).items; item != NULL && i < (da).count; i++, item++)
+    for (size_t i = 0; i < (da).count; i++) \
+        for (Type *item = &(da).items[i]; item; item = NULL)
 
 /*================== Cleanup =====================*/
 

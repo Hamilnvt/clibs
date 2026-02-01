@@ -210,6 +210,34 @@ defer:
     return result;
 }
 
+int compare_ints(const void *a, const void *b)
+{
+    const int arg1 = *(const int *)a;
+    const int arg2 = *(const int *)b;
+    return arg1 - arg2;
+}
+
+bool test_sort(void)
+{
+    bool result = true;
+    IntArray A = {0};
+
+    for (int i = 0; i < BIG_NUMBER; i++) {
+        int n = (rand()%2 ? 1 : -1) * (rand() % BIG_NUMBER);
+        da_push(&A, n);
+    }
+
+    da_sort(&A, compare_ints);
+
+    for (size_t i = 0; i < A.count-1; i++) {
+        TEST_ASSERT(A.items[i] <= A.items[i+1], "Array should be sorted");
+    }
+
+defer:
+    da_free(&A);
+    return result;
+}
+
 Test tests[] = {
     {"push", test_push},
     {"insert & push_first", test_insert_and_first},
@@ -217,6 +245,7 @@ Test tests[] = {
     {"remove & pop", test_remove_and_pop},
     {"clear", test_clear},
     {"for", test_for},
+    {"sort", test_sort},
 };
 const size_t total = sizeof(tests)/sizeof(tests[0]);
 
