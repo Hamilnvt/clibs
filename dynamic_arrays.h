@@ -41,12 +41,11 @@ struct DA {
         }                                                                              \
     } while (0)
 
-#define da_sort(da_ptr, cmp)                                                        \
-    do {                                                                            \
-        if ((da_ptr)->count > 0) {                                                  \
-            qsort((da_ptr)->items, (da_ptr)->count, sizeof(*(da_ptr)->items), cmp); \
-        }                                                                           \
-    } while (0)
+#define da_sort(da_ptr, cmp) \
+    qsort((da_ptr)->items, (da_ptr)->count, sizeof(*(da_ptr)->items), (cmp))
+
+#define da_binary_search(da, key_ptr, cmp) \
+    bsearch((key_ptr), (da).items, (da).count, sizeof(*(da).items), (cmp))
 
 /*================== Insert =====================*/
 
@@ -78,6 +77,20 @@ struct DA {
     } while (0)
 
 #define da_push_first(da, item) da_insert((da), (item), 0)
+
+#define da_push_to_sorted(da_ptr, item, cmp)             \
+    do {                                                 \
+        bool found = false;                              \
+        __typeof__((da_ptr)->items[0]) tmp = (item);     \
+        for (size_t i = 0; i < (da_ptr)->count; i++) {   \
+            if ((cmp)(&(da_ptr)->items[i], &tmp) >= 0) { \
+                da_insert((da_ptr), (item), i);          \
+                found = true;                            \
+                break;                                   \
+            }                                            \
+        }                                                \
+        if (!found) da_push((da_ptr), (item));           \
+    } while (0)
 
 #define da_push_many(da, new_items, new_items_count)                                            \
     do {                                                                                        \

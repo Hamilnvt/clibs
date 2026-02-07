@@ -217,6 +217,17 @@ int compare_ints(const void *a, const void *b)
     return arg1 - arg2;
 }
 
+bool is_sorted(IntArray A)
+{
+    if (A.count == 0 || A.count == 1) return true;
+    for (size_t i = 0; i < A.count-1; i++) {
+        const int *a = &A.items[i];
+        const int *b = &A.items[i+1];
+        if (compare_ints(a, b) > 0) return false;
+    }
+    return true;
+}
+
 bool test_sort(void)
 {
     bool result = true;
@@ -229,23 +240,65 @@ bool test_sort(void)
 
     da_sort(&A, compare_ints);
 
-    for (size_t i = 0; i < A.count-1; i++) {
-        TEST_ASSERT(A.items[i] <= A.items[i+1], "Array should be sorted");
-    }
+    TEST_ASSERT(is_sorted(A), "Array should be sorted");
 
 defer:
     da_free(&A);
     return result;
 }
 
+bool test_search(void)
+{
+    bool result = true;
+
+    IntArray ints = {0};
+    for (size_t i = 0; i < BIG_NUMBER; i++)
+        da_push(&ints, rand() % BIG_NUMBER);
+
+    da_sort(&ints, compare_ints);
+
+    int key = ints.items[rand() % ints.count];
+    int *found = (int *)da_binary_search(ints, &key, compare_ints);
+    TEST_ASSERT(found != NULL, "element '%d' should have been found", key);
+
+    key = BIG_NUMBER + 1;
+    found = (int *)da_binary_search(ints, &key, compare_ints);
+    TEST_ASSERT(found == NULL, "element '%d' should not be found", key);
+
+defer:
+    da_free(&ints);
+    return result;
+}
+
+bool test_push_to_sorted(void)
+{
+    bool result = true;
+
+    IntArray ints = {0};
+    for (size_t i = 0; i < BIG_NUMBER; i++)
+        da_push(&ints, rand() % BIG_NUMBER);
+
+    da_sort(&ints, compare_ints);
+
+    da_push_to_sorted(&ints, 1420, compare_ints);
+
+    TEST_ASSERT(is_sorted(ints), "Array should be sorted");
+
+defer:
+    da_free(&ints);
+    return result;
+}
+
 Test tests[] = {
     {"push", test_push},
-    {"insert & push_first", test_insert_and_first},
+    {"insert & push first", test_insert_and_first},
     {"push_many", test_push_many},
     {"remove & pop", test_remove_and_pop},
     {"clear", test_clear},
     {"for", test_for},
     {"sort", test_sort},
+    {"search", test_search},
+    {"push to sorted", test_push_to_sorted},
 };
 const size_t total = sizeof(tests)/sizeof(tests[0]);
 
