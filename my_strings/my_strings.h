@@ -1,7 +1,7 @@
 #ifndef INCLUDE_STR_H
 #define INCLUDE_STR_H
 
-#include "./dynamic_arrays.h"
+#include "dynamic_arrays.h"
 #include <stdarg.h>
 
 typedef struct
@@ -54,7 +54,7 @@ int s_is_char_in(String s, char c);
 
 #endif // INCLUDE_STR_H
 
-#ifdef STRINGS_IMPLEMENTATION
+#ifdef MY_STRINGS_IMPLEMENTATION
 
 void s_push(String *s, char c) { da_push(s, c); }
 void s_push_null(String *s) { da_push_many(s, "", 1); }
@@ -117,8 +117,8 @@ int s_cmp_cstr(String a, char *b) { return strncmp(a.items, b, a.count); }
 int s_eq_cstr(String a, char *b)  { return s_cmp_cstr(a, b) == 0; }
 
 int s_cmp_s(String a, String b) { return s_cmp_cstr(a, b.items); }
-int s_eq_s(String a, String b)  { return s_eq_cstr(a, b.items); }
+int s_eq_s(String a, String b)  { return a.count == b.count && s_eq_cstr(a, b.items); }
 
 void s_to_cstr(String s, char **cstr) { strncpy(*cstr, s.items, s.count); }
 
-#endif // STRINGS_IMPLEMENTATION
+#endif // MY_STRINGS_IMPLEMENTATION

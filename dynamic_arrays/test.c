@@ -89,6 +89,32 @@ defer:
     return result;
 }
 
+bool test_foreach(void)
+{
+    bool result = true;
+    IntArray A = {0};
+    for (int i = 0; i < BIG_NUMBER; i++) {
+        da_push(&A, i);
+    }
+
+    int c = 0;
+    da_foreach (A, x) {
+        *x = (*x)*2;
+        c++;
+    }
+
+    TEST_ASSERT(c == BIG_NUMBER, "foreach count != %d, got %d", BIG_NUMBER, c);
+
+    for (int i = 0; i < BIG_NUMBER; i++) {
+        TEST_ASSERT(A.items[i] == 2*i, "A.items[%d] != %d, got %d", i, 2*i, A.items[i]);
+    }
+    
+defer:
+    da_free(&A);
+    return result;
+}
+
+
 bool test_insert_and_first(void)
 {
     bool result = true;
@@ -296,6 +322,7 @@ Test tests[] = {
     {"remove & pop", test_remove_and_pop},
     {"clear", test_clear},
     {"for", test_for},
+    {"foreach", test_foreach},
     {"sort", test_sort},
     {"search", test_search},
     {"push to sorted", test_push_to_sorted},

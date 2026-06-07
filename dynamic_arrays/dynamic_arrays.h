@@ -25,10 +25,16 @@ struct DA {
     assert((size_t)(i) < (da).count && "Index must be less than the array count.")
 
 #define da_get(da, i) \
-    (da_bounds_check((da), (i)), (da).items[i])
+    ((da).items[da_bounds_check((da), (i)), i])
 
 #define da_get_ptr(da, i) \
-    (da_bounds_check((da), (i)), &(da).items[i])
+    (&(da).items[da_bounds_check((da), (i)), i])
+
+#define da_get_first(da) \
+    (&(da).items[assert((da).count > 0), 0])
+
+#define da_get_last(da) \
+    (&(da).items[assert((da).count > 0), ((da).count-1)])
 
 #define da_is_empty(da) ((da)->count == 0)
 
@@ -124,12 +130,12 @@ struct DA {
 
 #define da_for(da, i) for (size_t i = 0; i < (da).count; i++)
 
-#define da_foreach(da, Type, item) \
-    for (Type *item = (da).items; item != NULL && item < (da).items+(da).count; item++)
+#define da_foreach(da, item) \
+    for (__typeof__((da).items[0]) *item = (da).items; item != NULL && item < (da).items+(da).count; item++)
 
-#define da_enumerate(da, Type, i, item) \
+#define da_enumerate(da, i, item) \
     for (size_t i = 0; i < (da).count; i++) \
-        for (Type *item = &(da).items[i]; item; item = NULL)
+        for (__typeof__((da).items[0]) *item = &(da).items[i]; item; item = NULL)
 
 /*================== Cleanup =====================*/
 

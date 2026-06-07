@@ -1,1 +1,3 @@
-test
+dynamic_arrays/test
+cdc/*
+!cdc/cdc.h
