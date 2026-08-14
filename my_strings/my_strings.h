@@ -37,10 +37,10 @@ void s_clear(String *s);
 void s_free(String *s);
 
 int s_cmp_cstr(String a, char *b);
-int s_eq_cstr(String a, char *b);
+bool s_eq_cstr(String a, char *b);
 
 int s_cmp_s(String a, String b);
-int s_eq_s(String a, String b);
+bool s_eq_s(String a, String b);
 
 void s_to_cstr(String s, char **cstr);
 
@@ -51,6 +51,30 @@ void s_copy(String *dest, String src);
 void s_cat(String *dest, String src);
 int s_char_index(String s, char c);
 int s_is_char_in(String s, char c);
+
+
+// StringView
+
+typedef struct
+{
+    char *data;
+    size_t count;
+} StringView;
+
+#define SV_FMT "%.*s"
+#define SV_ARG(s) (int) (s).count, (s).data
+
+StringView sv_from_s(String s);
+StringView sv_from_parts(const char *data, size_t count);
+
+StringView sv_trim_left(StringView sv);
+StringView sv_trim_right(StringView sv);
+StringView sv_trim(StringView sv);
+
+StringView sv_chop_by_char(StringView *sv, char c);
+char sv_chop_first(StringView *sv);
+
+bool sv_eq_cstr(StringView a, char *b);
 
 #endif // INCLUDE_STR_H
 
@@ -63,12 +87,32 @@ void s_push_str(String *s, char *str, size_t len) { da_push_many(s, str, len); }
 void s_push_cstr(String *s, char *str) { da_push_many(s, str, strlen(str)); }
 void s_push_fstr(String *s, char *fmt, ...)
 {
-    va_list ap;
-    va_start(ap, fmt);
-    char buf[1024];
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-    s_push_cstr(s, buf);
+    if (!s || !fmt) return;
+
+    va_list ap1;
+    va_list ap2;
+    va_start(ap1, fmt);
+    va_copy(ap2, ap1);
+
+    int len = vsnprintf(NULL, 0, fmt, ap2);
+    va_end(ap2);
+
+    if (len < 0) {
+        va_end(ap1);
+        return;
+    }
+
+    char *buffer = malloc(len+1);
+    if (!buffer) {
+        va_end(ap1);
+        return;
+    }
+
+    vsnprintf(buffer, len+1, fmt, ap1);
+    va_end(ap1);
+
+    s_push_cstr(s, buffer);
+    free(buffer);
 }
 void s_insert(String *s, char c, size_t i) { da_insert(s, c, i); }
 
@@ -114,11 +158,80 @@ void s_clear(String *s) { da_clear(s); }
 void s_free(String *s) { da_free(s); }
 
 int s_cmp_cstr(String a, char *b) { return strncmp(a.items, b, a.count); }
-int s_eq_cstr(String a, char *b)  { return s_cmp_cstr(a, b) == 0; }
+bool s_eq_cstr(String a, char *b)  { return s_cmp_cstr(a, b) == 0; }
 
 int s_cmp_s(String a, String b) { return s_cmp_cstr(a, b.items); }
-int s_eq_s(String a, String b)  { return a.count == b.count && s_eq_cstr(a, b.items); }
+bool s_eq_s(String a, String b)  { return a.count == b.count && s_eq_cstr(a, b.items); }
 
 void s_to_cstr(String s, char **cstr) { strncpy(*cstr, s.items, s.count); }
+
+// StringView
+StringView sv_from_s(String s) { return (StringView){ .data=s.items, .count=s.count }; }
+StringView sv_from_parts(const char *data, size_t count)
+{
+    StringView sv;
+    sv.count = count;
+    sv.data = data;
+    return sv;
+}
+
+StringView sv_trim_left(StringView sv)
+{
+    size_t i = 0;
+    while (i < sv.count && isspace(sv.data[i])) {
+        i += 1;
+    }
+
+    return sv_from_parts(sv.data + i, sv.count - i);
+}
+
+StringView sv_trim_right(StringView sv)
+{
+    size_t i = 0;
+    while (i < sv.count && isspace(sv.data[sv.count - 1 - i])) {
+        i += 1;
+    }
+
+    return sv_from_parts(sv.data, sv.count - i);
+}
+
+StringView sv_trim(StringView sv)
+{
+    return sv_trim_right(sv_trim_left(sv));
+}
+
+StringView sv_chop_by_char(StringView *sv, char c)
+{
+    size_t i = 0;
+    while (i < sv->count && sv->data[i] != c) {
+        i += 1;
+    }
+
+    StringView result = sv_from_parts(sv->data, i);
+
+    if (i < sv->count) {
+        sv->count -= i + 1;
+        sv->data  += i + 1;
+    } else {
+        sv->count -= i;
+        sv->data  += i;
+    }
+
+    return result;
+}
+
+char sv_chop_first(StringView *sv)
+{
+    if (sv->count == 0) return 0;
+
+    char c = sv->data[0];
+
+    sv->data++;
+    sv->count--;
+
+    return c;
+}
+
+bool sv_eq_cstr(StringView a, char *b)  { return a.count == strlen(b) && strncmp(a.data, b, a.count) == 0; }
 
 #endif // MY_STRINGS_IMPLEMENTATION
